@@ -49,6 +49,8 @@ parser.add_argument('--cuda', type=bool, default=True)  # 是否使用cuda
 # train
 parser.add_argument('--epoch', type=int, default=30)
 parser.add_argument('--epoch_save', type=int, default=5)
+parser.add_argument('--dataset_root', type=str, default='../data')  # 训练过程中输出的保存路径
+parser.add_argument('--dataset', type=str, choices=['rdvs', 'vidsod_100', 'dvisal'])  # 训练过程中输出的保存路径
 parser.add_argument('--save_fold', type=str, default='./checkpoints')  # 训练过程中输出的保存路径
 parser.add_argument('--input_size', type=int, default=448)
 parser.add_argument('--batch_size', type=int, default=8)
@@ -63,7 +65,7 @@ parser.add_argument('--local_rank', default=-1, type=int, help='node rank for di
 parser.add_argument('--mode', type=str, default='train', choices=['train', 'test'])
 config = parser.parse_args()
 
-config.save_fold = config.save_fold + '/' + 'DCTNet'
+config.save_fold = config.save_fold + '/' + config.dataset
 if not os.path.exists("%s" % (config.save_fold)):
     os.mkdir("%s" % (config.save_fold))
 
@@ -83,7 +85,7 @@ if __name__ == '__main__':
         transform.FixedResize(size=(config.input_size, config.input_size)),
         transform.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
         transform.ToTensor()])
-    dataset_train = Dataset(datasets=['FBMS', 'DAVIS-TRAIN', 'DAVSOD', 'DUTS-TR'],
+    dataset_train = Dataset(datasets=[config.dataset], dataset_root=config.dataset_root,
                             transform=composed_transforms_ts, mode='train')
     # datasampler = torch.utils.data.distributed.DistributedSampler(dataset_train, num_replicas=dist.get_world_size(),
     #                                                               rank=args.local_rank, shuffle=True)

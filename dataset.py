@@ -20,7 +20,7 @@ def randomCrop(image, label, flow, depth):
 
 
 class Dataset(data.Dataset):
-    def __init__(self, datasets, mode='train', transform=None, return_size=True):
+    def __init__(self, datasets, dataset_root='../data', mode='train', transform=None, return_size=True):
         self.return_size = return_size
         if type(datasets) != list:
             datasets = [datasets]
@@ -28,32 +28,66 @@ class Dataset(data.Dataset):
         self.mode = mode
         for (i, dataset) in enumerate(datasets):
 
-            if mode == 'train':
-                data_dir = './dataset/train/{}'.format(dataset)
-                imgset_path = data_dir + '/train.txt'
+            if dataset == 'rdvs':
+                lable_rgb = 'rgb'
+                lable_depth = 'Depth'
+                lable_gt = 'ground-truth'
+                lable_flow = 'FLOW'
 
-            else:
-                data_dir = './dataset/test/{}'.format(dataset)
-                imgset_path = data_dir + '/test.txt'
-
-            imgset_file = open(imgset_path)
-
-            for line in imgset_file:
-                data = {}
-                img_path = line.strip("\n").split(" ")[0]
-                gt_path = line.strip("\n").split(" ")[1]
-                data['img_path'] = data_dir + img_path
-                data['gt_path'] = data_dir + gt_path
-                if dataset == 'DUTS-TR':
-                    data['split'] = dataset
-                    # DUTS Depth
-                    # data['depth_path'] = data_dir + line.strip("\n").split(" ")[-1]
+                if mode == 'train':
+                    data_dir = os.path.join(dataset_root, 'RDVS/train')
                 else:
-                    data['flow_path'] = data_dir + line.strip("\n").split(" ")[2]
-                    data['depth_path'] = data_dir + line.strip("\n").split(" ")[3]
-                    data['split'] = img_path.split('/')[-3]
-                data['dataset'] = dataset
-                self.datas_id.append(data)
+                    data_dir = os.path.join(dataset_root, 'RDVS/test')
+            elif dataset == 'vidsod_100':
+                lable_rgb = 'rgb'
+                lable_depth = 'depth'
+                lable_gt = 'gt'
+                lable_flow = 'flow'
+                
+                if mode == 'train':
+                    data_dir = os.path.join(dataset_root, 'vidsod_100/train')
+                    data_dir = '/home/linj/workspace/vsod/datasets/vidsod_100/train'
+                else:
+                    data_dir = os.path.join(dataset_root, 'vidsod_100/test')
+            elif dataset == 'dvisal':
+                lable_rgb = 'RGB'
+                lable_depth = 'Depth'
+                lable_gt = 'GT'
+                lable_flow = 'flow'
+
+                data_dir = os.path.join(dataset_root, 'DViSal_dataset/data')
+
+                if mode == 'train':
+                    dvi_mode = 'train'
+                else:
+                    dvi_mode = 'test_all'
+            else:
+                raise 'dataset is not support now.'
+            
+            if dataset == 'dvisal':
+                with open(os.path.join(data_dir, '../', dvi_mode+'.txt'), mode='r') as f:
+                    subsets = set(f.read().splitlines())
+            else:
+                subsets = os.listdir(data_dir)
+            
+            for video in subsets:
+                video_path = os.path.join(data_dir, video)
+                rgb_path = os.path.join(video_path, lable_rgb)
+                depth_path = os.path.join(video_path, lable_depth)
+                gt_path = os.path.join(video_path, lable_gt)
+                flow_path = os.path.join(video_path, lable_flow)
+                frames = os.listdir(rgb_path)
+                frames = sorted(frames)
+                for frame in frames[:-1]:
+                    data = {}
+                    data['img_path'] = os.path.join(rgb_path, frame)
+                    if os.path.isfile(data['img_path']):
+                        data['gt_path'] = os.path.join(gt_path, frame.replace('jpg', 'png'))
+                        data['depth_path'] = os.path.join(depth_path, frame.replace('jpg', 'png'))
+                        data['flow_path'] = os.path.join(flow_path, frame)
+                        data['split'] = video
+                        data['dataset'] = dataset
+                        self.datas_id.append(data)
         self.transform = transform
 
     def __getitem__(self, item):
